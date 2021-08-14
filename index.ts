@@ -12,10 +12,12 @@ const options = {
 class Commit {
   type: string;
   text: string;
+  url: string;
 
-  constructor(type: string, text: string) {
+  constructor(type: string, text: string, url: string) {
     this.type = type;
     this.text = text;
+    this.url = url;
   }
 }
 
@@ -29,18 +31,18 @@ class DateMessage {
   }
 }
 
-function parseMessage(message:string) : Commit  {
+function parseMessage(message:string, url:string) : Commit  {
   let ind1:number = message.indexOf(':');
   let ind3:number = message.indexOf('(');
   let ind2:number = message.indexOf('\n');
   if(ind2==-1) ind2 = message.length;
   if(ind1!=-1) {
       if(ind3<ind1 && ind3!=-1)
-      return new Commit(message.slice(0,ind3), message.slice(ind1+2,ind2));
+      return new Commit(message.slice(0,ind3), message.slice(ind1+2,ind2),url);
       else
-     return new Commit(message.slice(0,ind1), message.slice(ind1+2,ind2));
+     return new Commit(message.slice(0,ind1), message.slice(ind1+2,ind2),url);
    }
-  else return new Commit("","");
+  else return new Commit("","","");
 }
 
 function parseDate(d : string) : number { //2021-08-02T09:20:05Z
@@ -59,24 +61,37 @@ function createEmbed(size : number,messages : Array<Commit>) {
     let currType :string = "";
     let currText :string = "";
     let typeCounter : number = 0;
-
+    let contType : string = "-";
     for(let i:number = 0;i<size;i++) {
       if(typeCounter%25 == 0 && typeCounter!=0) {
         Embeds.push(Embed);
         Embed.fields = [];
       }
       let comm : Commit = messages[i];
+      let ind1 : number = comm.text.lastIndexOf('(');
+      let ind2 : number = comm.text.lastIndexOf(')');
+      let urltext : string = comm.text.slice(0,ind1+1)+'[' + comm.text.slice(ind1+1,ind2)+'](' + comm.url + '))';
+
       if(comm!=undefined) {
-        if(currType!=comm.type) {
+        if(currType!=comm.type && contType!=comm.type) {
           if(currType!="" && currText!="") {
             typeCounter++;
             Embed.addField(currType,currText);
           }
           currType = comm.type;
-          currText = comm.text;
+          currText = urltext;
         } else {
+          if(currText.length+urltext.length>=1024) {
+            typeCounter++;
+            Embed.addField(currType,currText);
+            if(currType!="...")
+            contType=currType;
+            currType="...";
+            currText=urltext;
+          } else {
           currText+='\n';
-          currText+=comm.text;
+          currText+=urltext;
+          }
         }
       }
     }
@@ -111,7 +126,6 @@ return arr;
 
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
-//const client = new Discord.Client();
 const clientId = "";
 client.login(clientId);
 
@@ -137,19 +151,12 @@ client.on("messageCreate", (message) => {
             let tm : number = parseDate(date);
             let dateNow = new Date();
             return dateNow.getTime() / 1000 - tm < 7*24*60*60;
-            return 1;
         });
 
         let size: number = filteredInfo.length;
 
-        let messages: Array<string> = filteredInfo.map((info1) : string  => {
-          return info1.commit.message;
-        });
-        console.log(messages);
-        messages.sort();
-
-        let parsedMessages : Array<Commit> = messages.map((msg) : Commit  => {
-          let comm : Commit = parseMessage(msg);
+        let parsedMessages : Array<Commit> = filteredInfo.map((mycommit) : Commit  => {
+          let comm : Commit = parseMessage(mycommit.commit.message,mycommit.html_url);
           return comm;
         });
 
@@ -164,6 +171,7 @@ client.on("messageCreate", (message) => {
         }
       }
     });
+    message.delete();
   }
 
 });
