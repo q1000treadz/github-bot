@@ -56,8 +56,9 @@ function createEmbed(size : number,messages : Array<Commit>) {
     let Embeds : Array<any> = [];
 
     let Embed = new MessageEmbed()
-    .setColor('#0099ff');
-    //  .setTitle('TEST');
+    .setColor('#0099ff')
+    .setTitle('Hey! Here are changes in the SkyMP codebase for the last week.');
+  //  .setDescription('@everyone');
     let currType :string = "";
     let currText :string = "";
     let typeCounter : number = 0;
@@ -76,6 +77,9 @@ function createEmbed(size : number,messages : Array<Commit>) {
         if(currType!=comm.type && contType!=comm.type) {
           if(currType!="" && currText!="") {
             typeCounter++;
+            if(currType == "feat")
+            Embed.addField("features",currText);
+            else
             Embed.addField(currType,currText);
           }
           currType = comm.type;
@@ -83,6 +87,9 @@ function createEmbed(size : number,messages : Array<Commit>) {
         } else {
           if(currText.length+urltext.length>=1024) {
             typeCounter++;
+            if(currType == "feat")
+            Embed.addField("features",currText);
+            else
             Embed.addField(currType,currText);
             if(currType!="...")
             contType=currType;
@@ -97,6 +104,9 @@ function createEmbed(size : number,messages : Array<Commit>) {
     }
 
     if(currType!="" && currText!="") {
+      if(currType == "feat")
+      Embed.addField("features",currText);
+      else
       Embed.addField(currType,currText);
     }
     Embeds.push(Embed);
@@ -131,13 +141,14 @@ client.login(clientId);
 
 
 client.on("ready", () => {
-  console.log("bot start");
+  console.log("bot start anska");
   client.user.setActivity("SkyMP");
 });
 
 client.on("messageCreate", (message) => {
-
-  if(message.channel.type != "GUILD_TEXT") return;
+  console.log("Msssg");
+    console.log(message.channel.type);
+  if(!(message.channel.type == "GUILD_TEXT" || message.channel.type == "GUILD_NEWS")) return;
   console.log(message.content);
 
   if(message.content == "!upd") {
@@ -165,7 +176,7 @@ client.on("messageCreate", (message) => {
 
 
         let Embeds = createEmbed(size,sortedMessages);
-
+        message.channel.send('@everyone');
         for(let i =0;i<Embeds.length;i++) {
             message.channel.send({ embeds: [Embeds[i]] });
         }
